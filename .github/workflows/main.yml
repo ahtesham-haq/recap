@@ -28,7 +28,7 @@ jobs:
         file="ConsoleApp1CICD/Properties/AssemblyInfo.cs" # Update path to reflect your project structure
         
         # Extract current version (only first match)
-        version=$(grep -oP '(?<=\[assembly: AssemblyVersion\(")[^"]+' $file | head -n 1)
+        version=$(grep -oP '(?<=\[assembly: AssemblyVersion\(")[^"]+' $file )
         echo "Current version: $version"
         
         if [[ "$version" == *"*"* ]]; then
