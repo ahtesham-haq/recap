@@ -81,10 +81,10 @@ jobs:
         echo "Replacing version in $file"
         echo "Current pattern: [assembly: AssemblyVersion(\"$version\")]"
         echo "New pattern: [assembly: AssemblyVersion(\"$new_version\")]"
-        
+
         # Replace the version in AssemblyInfo.cs using a pipe delimiter
-        sed -i "s|\\[assembly: AssemblyVersion(\"$version\")\\]|[assembly: AssemblyVersion(\"$new_version\")]|g" $file
-        sed -i "s|\\[assembly: AssemblyFileVersion(\"$version\")\\]|[assembly: AssemblyFileVersion(\"$new_version\")]|g" $file
+        sed -i "s|\[assembly: AssemblyVersion(\"$version\")\]|\[assembly: AssemblyVersion(\"$new_version\")\]|g" $file
+        sed -i "s|\[assembly: AssemblyFileVersion(\"$version\")\]|\[assembly: AssemblyFileVersion(\"$new_version\")\]|g" $file
 
         # Output the new version so it can be used in later steps
         echo "::set-output name=new_version::$new_version"
