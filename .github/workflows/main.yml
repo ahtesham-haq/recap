@@ -97,4 +97,4 @@ jobs:
         git config user.email "ahtesham.ul.haq@healthwaresystems.com"
         git add .
         git commit -m "Incremented version to ${{ env.new_version }}" || echo "No changes to commit"
-        git push origin main
+        git push origin ${{ github.head_ref }}  # Push to the branch associated with the PR
