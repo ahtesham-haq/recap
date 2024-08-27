@@ -24,42 +24,46 @@ jobs:
       run: echo "PAT is ${{ secrets.ACTIONS_PAT }}"
 
     - name: Increment version
-      run: |
-        file="ConsoleApp1CICD/Properties/AssemblyInfo.cs" # Update path to reflect your project structure
+  run: |
+    file="ConsoleApp1CICD/Properties/AssemblyInfo.cs" # Update path to reflect your project structure
+
+    # Extract all current versions
+    versions=$(grep -oP '(?<=\[assembly: AssemblyVersion\(")[^"]+' $file)
+    echo "Current versions:"
+    echo "$versions"
+    
+    for version in $versions; do
+      if [[ "$version" == *"*"* ]]; then
+        # Handle cases where version contains '*'
+        echo "Version contains wildcard '*', updating only the patch number."
         
-        # Extract current version (only first match)
-        version=$(grep -oP '(?<=\[assembly: AssemblyVersion\(")[^"]+' $file )
-        echo "Current version: $version"
+        # Extract the current version excluding the wildcard
+        base_version=$(echo "$version" | sed 's/\*//')
+        IFS='.' read -r major minor patch <<< "$base_version"
         
-        if [[ "$version" == *"*"* ]]; then
-          # Handle cases where version contains '*'
-          echo "Version contains wildcard '*', updating only the patch number."
-          
-          # Extract the current version excluding the wildcard
-          base_version=$(echo "$version" | sed 's/\*//')
-          IFS='.' read -r major minor patch <<< "$base_version"
-          
-          # Increment the patch version
-          patch=$((patch + 1))
-          new_version="$major.$minor.$patch"
-        else
-          # Handle cases where version is in full format
-          IFS='.' read -r major minor patch <<< "$version"
-          
-          # Increment the patch version
-          patch=$((patch + 1))
-          new_version="$major.$minor.$patch"
-        fi
+        # Increment the patch version
+        patch=$((patch + 1))
+        new_version="$major.$minor.$patch"
+      else
+        # Handle cases where version is in full format
+        IFS='.' read -r major minor patch <<< "$version"
         
-        echo "New version: $new_version"
-        
-        # Replace the version in AssemblyInfo.cs
-        sed -i "s/\[assembly: AssemblyVersion(\"$version\")\]/\[assembly: AssemblyVersion(\"$new_version\")\]/g" $file
-        sed -i "s/\[assembly: AssemblyFileVersion(\"$version\")\]/\[assembly: AssemblyFileVersion(\"$new_version\")\]/g" $file
-        
-        # Verify changes
-        echo "Updated file content:"
-        cat $file
+        # Increment the patch version
+        patch=$((patch + 1))
+        new_version="$major.$minor.$patch"
+      fi
+      
+      echo "New version: $new_version"
+      
+      # Replace the version in AssemblyInfo.cs using a pipe delimiter
+      sed -i "s|\[assembly: AssemblyVersion(\"$version\")\]|\[assembly: AssemblyVersion(\"$new_version\")\]|g" $file
+      sed -i "s|\[assembly: AssemblyFileVersion(\"$version\")\]|\[assembly: AssemblyFileVersion(\"$new_version\")\]|g" $file
+    done
+    
+    # Verify changes
+    echo "Updated file content:"
+    cat $file
+
 
     - name: Commit and push changes
       env:
