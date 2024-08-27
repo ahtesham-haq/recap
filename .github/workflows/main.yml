@@ -41,18 +41,18 @@ jobs:
             
             # Extract the current version excluding the wildcard
             base_version=$(echo "$version" | sed 's/\*//')
-            IFS='.' read -r major minor patch <<< "$base_version"
+            IFS='.' read -r major minor patch revision <<< "$base_version"
             
-            # Increment the patch version
-            patch=$((patch + 1))
-            new_version="$major.$minor.$patch"
+            # Increment the revision number
+            revision=$((revision + 1))
+            new_version="$major.$minor.$patch.$revision"
           else
             # Handle cases where version is in full format
-            IFS='.' read -r major minor patch <<< "$version"
+            IFS='.' read -r major minor patch revision <<< "$version"
             
-            # Increment the patch version
-            patch=$((patch + 1))
-            new_version="$major.$minor.$patch"
+            # Increment the revision number
+            revision=$((revision + 1))
+            new_version="$major.$minor.$patch.$revision"
           fi
         
           echo "New version: $new_version"
