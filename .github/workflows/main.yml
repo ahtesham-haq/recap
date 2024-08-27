@@ -1,12 +1,4 @@
-name: Version Increment
-
-on:
-  push:
-    branches:
-      - main  # Ensure this matches your default branch name
-      
-permissions:
-  contents: write  # Grants write permission to the GITHUB_TOKENname: Version Increment Based on PR Label
+name: Version Increment Based on PR Label
 
 on:
   pull_request:
@@ -60,7 +52,7 @@ jobs:
         file="ConsoleApp1CICD/Properties/AssemblyInfo.cs" # Update path to reflect your project structure
         
         # Extract current version
-        version=$(grep -oP '(?<=\[assembly: AssemblyVersion\(")[^"]+' $file)
+        version=$(grep -oP '(?<=\[assembly: AssemblyVersion\(")[^"]+' $file | tr -d '\r')
         echo "Current version: $version"
 
         # Extract major, minor, patch, and revision
@@ -85,12 +77,17 @@ jobs:
         new_version="$major.$minor.$patch.$revision"
         echo "New version: $new_version"
 
+        # Print debug information
+        echo "Replacing version in $file"
+        echo "Current pattern: [assembly: AssemblyVersion(\"$version\")]"
+        echo "New pattern: [assembly: AssemblyVersion(\"$new_version\")]"
+        
         # Replace the version in AssemblyInfo.cs using a pipe delimiter
         sed -i "s|\[assembly: AssemblyVersion(\"$version\")\]|\[assembly: AssemblyVersion(\"$new_version\")\]|g" $file
         sed -i "s|\[assembly: AssemblyFileVersion(\"$version\")\]|\[assembly: AssemblyFileVersion(\"$new_version\")\]|g" $file
 
         # Output the new version so it can be used in later steps
-        echo "::set-output name=new_version::$new_version"
+        echo "new_version=$new_version" >> $GITHUB_ENV
 
     - name: Commit and push changes
       env:
@@ -99,77 +96,5 @@ jobs:
         git config user.name "ahtesham-haq"
         git config user.email "ahtesham.ul.haq@healthwaresystems.com"
         git add .
-        git commit -m "Incremented version to ${{ steps.increment_version.outputs.new_version }}" || echo "No changes to commit"
-        git push origin main
-
-  
-jobs:
-  increment-version:
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
-
-    - name: Set up .NET
-      uses: actions/setup-dotnet@v2
-      with:
-        dotnet-version: '6.x'  # Adjust to your .NET versions
-
-    - name: Check PAT
-      run: echo "PAT is ${{ secrets.ACTIONS_PAT }}"
-
-    - name: Increment version
-      id: increment_version  # ID for referencing outputs
-      run: |
-        file="ConsoleApp1CICD/Properties/AssemblyInfo.cs" # Update path to reflect your project structure
-
-        # Extract all current versions
-        versions=$(grep -oP '(?<=\[assembly: AssemblyVersion\(")[^"]+' $file)
-        echo "Current versions:"
-        echo "$versions"
-      
-        for version in $versions; do
-          if [[ "$version" == *"*"* ]]; then
-            # Handle cases where version contains '*'
-            echo "Version contains wildcard '*', updating only the patch number."
-            
-            # Extract the current version excluding the wildcard
-            base_version=$(echo "$version" | sed 's/\*//')
-            IFS='.' read -r major minor patch revision <<< "$base_version"
-            
-            # Increment the revision number
-            revision=$((revision + 1))
-            new_version="$major.$minor.$patch.$revision"
-          else
-            # Handle cases where version is in full format
-            IFS='.' read -r major minor patch revision <<< "$version"
-            
-            # Increment the revision number
-            revision=$((revision + 1))
-            new_version="$major.$minor.$patch.$revision"
-          fi
-        
-          echo "New version: $new_version"
-          
-          # Replace the version in AssemblyInfo.cs using a pipe delimiter
-          sed -i "s|\[assembly: AssemblyVersion(\"$version\")\]|\[assembly: AssemblyVersion(\"$new_version\")\]|g" $file
-          sed -i "s|\[assembly: AssemblyFileVersion(\"$version\")\]|\[assembly: AssemblyFileVersion(\"$new_version\")\]|g" $file
-        done
-    
-        # Verify changes
-        echo "Updated file content:"
-        cat $file
-        
-        # Output the new version so it can be used in later steps
-        echo "::set-output name=new_version::$new_version"
-
-    - name: Commit and push changes
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Use the GITHUB_TOKEN provided by GitHub
-      run: |
-        git config user.name "ahtesham-haq"
-        git config user.email "ahtesham.ul.haq@healthwaresystems.com"
-        git add .
-        git commit -m "Incremented version to ${{ steps.increment_version.outputs.new_version }}" || echo "No changes to commit"
+        git commit -m "Incremented version to ${{ env.new_version }}" || echo "No changes to commit"
         git push origin main
