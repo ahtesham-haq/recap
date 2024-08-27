@@ -52,7 +52,7 @@ jobs:
         file="ConsoleApp1CICD/Properties/AssemblyInfo.cs" # Update path to reflect your project structure
         
         # Extract current version
-        version=$(grep -oP '(?<=\[assembly: AssemblyVersion\(")[^"]+' $file)
+        version=$(grep -oP '(?<=\[assembly: AssemblyVersion\(")[^"]+' $file | tr -d '\r')
         echo "Current version: $version"
 
         # Extract major, minor, patch, and revision
@@ -81,7 +81,7 @@ jobs:
         echo "Replacing version in $file"
         echo "Current pattern: [assembly: AssemblyVersion(\"$version\")]"
         echo "New pattern: [assembly: AssemblyVersion(\"$new_version\")]"
-
+        
         # Replace the version in AssemblyInfo.cs using a pipe delimiter
         sed -i "s|\[assembly: AssemblyVersion(\"$version\")\]|\[assembly: AssemblyVersion(\"$new_version\")\]|g" $file
         sed -i "s|\[assembly: AssemblyFileVersion(\"$version\")\]|\[assembly: AssemblyFileVersion(\"$new_version\")\]|g" $file
