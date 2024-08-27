@@ -1,0 +1,7 @@
+D:\Ahtesham ul haq\Projects\Learning\Github\FirstCICD\ConsoleApp1CICD\ConsoleApp1CICD\bin\Debug\ConsoleApp1CICD.exe.config
+D:\Ahtesham ul haq\Projects\Learning\Github\FirstCICD\ConsoleApp1CICD\ConsoleApp1CICD\bin\Debug\ConsoleApp1CICD.exe
+D:\Ahtesham ul haq\Projects\Learning\Github\FirstCICD\ConsoleApp1CICD\ConsoleApp1CICD\bin\Debug\ConsoleApp1CICD.pdb
+D:\Ahtesham ul haq\Projects\Learning\Github\FirstCICD\ConsoleApp1CICD\ConsoleApp1CICD\obj\Debug\ConsoleApp1CICD.csprojAssemblyReference.cache
+D:\Ahtesham ul haq\Projects\Learning\Github\FirstCICD\ConsoleApp1CICD\ConsoleApp1CICD\obj\Debug\ConsoleApp1CICD.csproj.CoreCompileInputs.cache
+D:\Ahtesham ul haq\Projects\Learning\Github\FirstCICD\ConsoleApp1CICD\ConsoleApp1CICD\obj\Debug\ConsoleApp1CICD.exe
+D:\Ahtesham ul haq\Projects\Learning\Github\FirstCICD\ConsoleApp1CICD\ConsoleApp1CICD\obj\Debug\ConsoleApp1CICD.pdb
