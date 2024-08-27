@@ -1,12 +1,12 @@
-name: Version Increment Based on PR Label
+name: Version Increment and Merge
 
 on:
   pull_request:
-    types: [labeled]
+    types: [opened, synchronize, labeled]
 
 permissions:
   contents: write  # Grants write permission to the GITHUB_TOKEN
-  pull-requests: read  # Allows reading PR information
+  pull-requests: write  # Allows writing PR information
 
 jobs:
   increment-version:
@@ -15,6 +15,8 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
+      with:
+        fetch-depth: 0  # Ensure that the full history is fetched
 
     - name: Set up .NET
       uses: actions/setup-dotnet@v2
@@ -95,11 +97,27 @@ jobs:
       run: |
         git config user.name "ahtesham-haq"
         git config user.email "ahtesham.ul.haq@healthwaresystems.com"
+        
+        # Add and commit changes
         git add .
         git commit -m "Incremented version to ${{ env.new_version }}" || echo "No changes to commit"
-
-        # Debug information
-        echo "Pushing changes to branch ${{ github.head_ref }}"
         
-        # Push to the branch associated with the PR
-        git push origin ${{ github.head_ref }}
+        # Verify the current branch
+        echo "Current branch: ${{ github.head_ref }}"
+
+        # Push changes to the branch associated with the PR
+        if [ -n "${{ github.head_ref }}" ]; then
+          echo "Pushing changes to branch ${{ github.head_ref }}"
+          git push origin ${{ github.head_ref }}
+        else
+          echo "Branch reference not found. Unable to push changes."
+          exit 1
+        fi
+
+    - name: Merge changes to main
+      if: github.event_name == 'pull_request' && github.event.action == 'labeled'
+      run: |
+        echo "Merging changes to main"
+        git checkout main
+        git merge ${{ github.head_ref }}
+        git push origin main
