@@ -52,7 +52,7 @@ jobs:
         file="ConsoleApp1CICD/Properties/AssemblyInfo.cs" # Update path to reflect your project structure
         
         # Extract current version
-        version=$(grep -oP '(?<=\[assembly: AssemblyVersion\(")[^"]+' $file | tr -d '\r')
+        version=$(grep -oP '(?<=\[assembly: AssemblyVersion\(")[^"]+' $file | tr -d '\r' | tr -d '\n')
         echo "Current version: $version"
 
         # Extract major, minor, patch, and revision
@@ -87,7 +87,7 @@ jobs:
         sed -i "s|\[assembly: AssemblyFileVersion(\"$version\")\]|\[assembly: AssemblyFileVersion(\"$new_version\")\]|g" $file
 
         # Output the new version so it can be used in later steps
-        echo "::set-output name=new_version::$new_version"
+        echo "new_version=$new_version" >> $GITHUB_ENV
 
     - name: Commit and push changes
       env:
@@ -96,5 +96,5 @@ jobs:
         git config user.name "ahtesham-haq"
         git config user.email "ahtesham.ul.haq@healthwaresystems.com"
         git add .
-        git commit -m "Incremented version to ${{ steps.increment_version.outputs.new_version }}" || echo "No changes to commit"
+        git commit -m "Incremented version to ${{ env.new_version }}" || echo "No changes to commit"
         git push origin main
