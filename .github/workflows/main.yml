@@ -19,7 +19,7 @@ jobs:
     - name: Set up .NET
       uses: actions/setup-dotnet@v2
       with:
-        dotnet-version: '6.x'  # Adjust to your .NET version
+        dotnet-version: '6.x'  # Adjust to your .NET versions
 
     - name: Check PAT
       run: echo "PAT is ${{ secrets.ACTIONS_PAT }}"
