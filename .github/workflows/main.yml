@@ -6,7 +6,102 @@ on:
       - main  # Ensure this matches your default branch name
       
 permissions:
+  contents: write  # Grants write permission to the GITHUB_TOKENname: Version Increment Based on PR Label
+
+on:
+  pull_request:
+    types: [labeled]
+
+permissions:
   contents: write  # Grants write permission to the GITHUB_TOKEN
+  pull-requests: read  # Allows reading PR information
+
+jobs:
+  increment-version:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up .NET
+      uses: actions/setup-dotnet@v2
+      with:
+        dotnet-version: '6.x'  # Adjust to your .NET version
+
+    - name: Get PR Labels
+      id: get_labels
+      run: |
+        PR_NUMBER=${{ github.event.pull_request.number }}
+        echo "Fetching labels for PR #${PR_NUMBER}"
+        
+        # Fetch PR labels using GitHub API
+        labels=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+                          "https://api.github.com/repos/${{ github.repository }}/issues/${PR_NUMBER}/labels" \
+                          | jq -r '.[].name')
+        
+        echo "Labels: $labels"
+
+        # Check if specific labels are present
+        if echo "$labels" | grep -q 'major'; then
+          echo "Label 'major' found. Incrementing major version."
+          echo "INCREMENT=major" >> $GITHUB_ENV
+        elif echo "$labels" | grep -q 'minor'; then
+          echo "Label 'minor' found. Incrementing minor version."
+          echo "INCREMENT=minor" >> $GITHUB_ENV
+        else
+          echo "No recognized label found. Incrementing patch version."
+          echo "INCREMENT=patch" >> $GITHUB_ENV
+        fi
+
+    - name: Increment version
+      id: increment_version
+      run: |
+        file="ConsoleApp1CICD/Properties/AssemblyInfo.cs" # Update path to reflect your project structure
+        
+        # Extract current version
+        version=$(grep -oP '(?<=\[assembly: AssemblyVersion\(")[^"]+' $file)
+        echo "Current version: $version"
+
+        # Extract major, minor, patch, and revision
+        IFS='.' read -r major minor patch revision <<< "$version"
+
+        # Determine increment based on environment variable
+        case $INCREMENT in
+          major)
+            major=$((major + 1))
+            minor=0
+            patch=0
+            ;;
+          minor)
+            minor=$((minor + 1))
+            patch=0
+            ;;
+          patch)
+            patch=$((patch + 1))
+            ;;
+        esac
+
+        new_version="$major.$minor.$patch.$revision"
+        echo "New version: $new_version"
+
+        # Replace the version in AssemblyInfo.cs using a pipe delimiter
+        sed -i "s|\[assembly: AssemblyVersion(\"$version\")\]|\[assembly: AssemblyVersion(\"$new_version\")\]|g" $file
+        sed -i "s|\[assembly: AssemblyFileVersion(\"$version\")\]|\[assembly: AssemblyFileVersion(\"$new_version\")\]|g" $file
+
+        # Output the new version so it can be used in later steps
+        echo "::set-output name=new_version::$new_version"
+
+    - name: Commit and push changes
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Use the GITHUB_TOKEN provided by GitHub
+      run: |
+        git config user.name "ahtesham-haq"
+        git config user.email "ahtesham.ul.haq@healthwaresystems.com"
+        git add .
+        git commit -m "Incremented version to ${{ steps.increment_version.outputs.new_version }}" || echo "No changes to commit"
+        git push origin main
+
   
 jobs:
   increment-version:
