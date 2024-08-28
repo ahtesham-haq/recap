@@ -1,22 +1,22 @@
-name: Version Increment and PR Merge
+name: Update Version on PR Merge
 
 on:
   pull_request:
-    types: [opened, synchronize, labeled]
+    types: [closed]  # Trigger this workflow when a PR is closed (merged or just closed)
 
 permissions:
   contents: write
-  pull-requests: write
+  pull-requests: read  # Only read access is needed to fetch PR labels
 
 jobs:
-  increment-version:
+  update-version:
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
       with:
-        fetch-depth: 0  # Ensure that the full history is fetched
+        fetch-depth: 0  # Ensure the full history is fetched
 
     - name: Set up .NET
       uses: actions/setup-dotnet@v2
@@ -26,6 +26,11 @@ jobs:
     - name: Get PR Labels
       id: get_labels
       run: |
+        if [ "${{ github.event.pull_request.merged }}" != "true" ]; then
+          echo "PR not merged. Exiting."
+          exit 0
+        fi
+        
         PR_NUMBER=${{ github.event.pull_request.number }}
         echo "Fetching labels for PR #${PR_NUMBER}"
         
@@ -36,66 +41,55 @@ jobs:
         
         echo "Labels: $labels"
 
-        # Check if specific labels are present
+        # Determine increment type based on labels
         if echo "$labels" | grep -q 'major'; then
-          echo "Label 'major' found. Incrementing major version."
           echo "INCREMENT=major" >> $GITHUB_ENV
         elif echo "$labels" | grep -q 'minor'; then
-          echo "Label 'minor' found. Incrementing minor version."
           echo "INCREMENT=minor" >> $GITHUB_ENV
         else
-          echo "No recognized label found. Incrementing patch version."
           echo "INCREMENT=patch" >> $GITHUB_ENV
         fi
 
     - name: Increment version
       id: increment_version
       run: |
-        file="ConsoleApp1CICD/Properties/AssemblyInfo.cs"  # Update path if needed
-        
-        # Extract current versions
-        versions=$(grep -oP '(?<=\[assembly: AssemblyVersion\(")[^"]+' $file)
-        echo "Current versions:"
-        echo "$versions"
+        file="ConsoleApp1CICD/Properties/AssemblyInfo.cs" # Update path to reflect your project structure
 
-        # Define the function to increment the version
-        increment_version() {
-          local version=$1
-          IFS='.' read -r major minor patch revision <<< "$version"
+        # Extract current version
+        version=$(grep -oP '(?<=\[assembly: AssemblyVersion\(")[^"]+' $file)
+        echo "Current version: $version"
 
-          case $INCREMENT in
-            major)
-              major=$((major + 1))
-              minor=0
-              patch=0
-              revision=0
-              ;;
-            minor)
-              minor=$((minor + 1))
-              patch=0
-              revision=0
-              ;;
-            patch)
-              patch=$((patch + 1))
-              ;;
-            *)
-              echo "Invalid increment type: $INCREMENT"
-              exit 1
-              ;;
-          esac
+        # Extract major, minor, patch, and revision
+        IFS='.' read -r major minor patch revision <<< "$version"
 
-          echo "$major.$minor.$patch.$revision"
-        }
+        # Determine increment based on environment variable
+        case $INCREMENT in
+          major)
+            major=$((major + 1))
+            minor=0
+            patch=0
+            revision=0
+            ;;
+          minor)
+            minor=$((minor + 1))
+            patch=0
+            revision=0
+            ;;
+          patch)
+            patch=$((patch + 1))
+            ;;
+          *)
+            echo "Invalid increment type: $INCREMENT"
+            exit 1
+            ;;
+        esac
 
-        # Replace the version in AssemblyInfo.cs using sed
-        while IFS= read -r version; do
-          new_version=$(increment_version "$version")
-          echo "Updating version from $version to $new_version"
+        new_version="$major.$minor.$patch.$revision"
+        echo "New version: $new_version"
 
-          # Use sed to replace version lines without adding comments
-          sed -i "s|\[assembly: AssemblyVersion(\"$version\")\]|\[assembly: AssemblyVersion(\"$new_version\")\]|g" $file
-          sed -i "s|\[assembly: AssemblyFileVersion(\"$version\")\]|\[assembly: AssemblyFileVersion(\"$new_version\")\]|g" $file
-        done <<< "$versions"
+        # Replace the version in AssemblyInfo.cs using a pipe delimiter
+        sed -i "s|\[assembly: AssemblyVersion(\"$version\")\]|\[assembly: AssemblyVersion(\"$new_version\")\]|g" $file
+        sed -i "s|\[assembly: AssemblyFileVersion(\"$version\")\]|\[assembly: AssemblyFileVersion(\"$new_version\")\]|g" $file
 
         # Debug: Print the file content after modification
         echo "Modified file content:"
@@ -104,39 +98,17 @@ jobs:
         # Output the new version so it can be used in later steps
         echo "new_version=$new_version" >> $GITHUB_ENV
 
-    - name: Commit and push changes to PR branch
+    - name: Commit and push changes
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         git config user.name "ahtesham-haq"
         git config user.email "ahtesham.ul.haq@healthwaresystems.com"
         
-        # Check if there are changes
-        git diff --exit-code
-        if [ $? -ne 0 ]; then
-          git add .
-          git commit -m "Incremented version to $new_version"
-          git push origin ${{ github.head_ref }}
-        else
-          echo "No changes to commit"
-        fi
-
-    - name: Merge PR into main
-      if: github.event.action == 'labeled'
-      run: |
-        echo "Merging changes to main"
+        # Add and commit changes
+        git add .
+        git diff --cached --name-only  # Check what files are staged
+        git commit -m "Incremented version to ${{ env.new_version }}" || echo "No changes to commit"
         
-        # Fetch and checkout the PR branch
-        git fetch origin ${{ github.head_ref }}
-        git checkout ${{ github.head_ref }}
-        
-        # Ensure we are on the main branch
-        git fetch origin main
-        git checkout main
-        git pull origin main
-
-        # Merge the PR branch into main
-        git merge --no-ff -m "Merge PR #${{ github.event.pull_request.number }} into main" ${{ github.head_ref }}
-
-        # Push the updated main branch
+        # Push changes to main branch
         git push origin main
