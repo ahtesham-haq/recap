@@ -107,6 +107,7 @@ jobs:
         git config user.name "ahtesham-haq"
         git config user.email "ahtesham.ul.haq@healthwaresystems.com"
         git add .
+        git diff --cached --name-only  # Check what files are staged
         git commit -m "Incremented version to $new_version" || echo "No changes to commit"
 
     - name: Merge changes to main
