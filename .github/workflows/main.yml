@@ -102,6 +102,7 @@ jobs:
         
         # Add and commit changes
         git add .
+        git status
         git commit -m "Incremented version to ${{ env.new_version }}" || echo "No changes to commit"
         
         # Verify the current branch
@@ -118,6 +119,9 @@ jobs:
         # Check out the main branch
         git fetch origin main
         git checkout main
+        
+        # Ensure there are no uncommitted changes
+        git status
         
         # Merge the PR branch into main
         git merge ${{ github.head_ref }} --no-ff -m "Merge PR #${{ github.event.pull_request.number }} into main"
