@@ -112,12 +112,15 @@ jobs:
         
         # Add and commit changes
         git add .
+        git diff --cached --name-only  # Check what files are staged
         git commit -m "Incremented version to ${{ env.new_version }}" || echo "No changes to commit"
         
         # Verify the current branch
         echo "Current branch: ${{ github.head_ref }}"
 
-        # Push changes to the branch associated with the PR
+        # Ensure we're on the correct PR branch and push
+        git fetch origin ${{ github.head_ref }}
+        git checkout ${{ github.head_ref }}
         git push origin ${{ github.head_ref }}
 
     - name: Merge changes to main
