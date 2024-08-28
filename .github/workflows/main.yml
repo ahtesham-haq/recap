@@ -50,7 +50,7 @@ jobs:
           echo "INCREMENT=patch" >> $GITHUB_ENV
         fi
 
-    - name: Increment version
+        - name: Increment version
       id: increment_version
       run: |
         file="ConsoleApp1CICD/Properties/AssemblyInfo.cs"  # Update path if needed
@@ -77,8 +77,12 @@ jobs:
               patch=0
               revision=0
               ;;
-            patch)
+            build)
               patch=$((patch + 1))
+              revision=0
+              ;;
+            revision)
+              revision=$((revision + 1))
               ;;
             *)
               echo "Invalid increment type: $INCREMENT"
@@ -88,6 +92,12 @@ jobs:
 
           echo "$major.$minor.$patch.$revision"
         }
+
+        # Check for the increment type
+        if [ -z "$INCREMENT" ]; then
+          echo "No increment type specified. Exiting."
+          exit 0
+        fi
 
         # Debug: Print the file content before modification
         echo "Original file content:"
@@ -109,6 +119,7 @@ jobs:
 
         # Output the new version so it can be used in later steps
         echo "new_version=$new_version" >> $GITHUB_ENV
+
 
     - name: Commit and push changes
       env:
