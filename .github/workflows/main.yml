@@ -50,7 +50,7 @@ jobs:
           echo "INCREMENT=patch" >> $GITHUB_ENV
         fi
 
-        - name: Increment version
+    - name: Increment version
       id: increment_version
       run: |
         file="ConsoleApp1CICD/Properties/AssemblyInfo.cs"  # Update path if needed
