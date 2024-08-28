@@ -46,8 +46,12 @@ jobs:
           echo "INCREMENT=major" >> $GITHUB_ENV
         elif echo "$labels" | grep -q 'minor'; then
           echo "INCREMENT=minor" >> $GITHUB_ENV
+        elif echo "$labels" | grep -q 'build'; then
+          echo "INCREMENT=build" >> $GITHUB_ENV
+        elif echo "$labels" | grep -q 'revision'; then
+          echo "INCREMENT=revision" >> $GITHUB_ENV
         else
-          echo "INCREMENT=patch" >> $GITHUB_ENV
+          echo "INCREMENT=" >> $GITHUB_ENV
         fi
 
     - name: Increment version
@@ -79,14 +83,13 @@ jobs:
               ;;
             build)
               patch=$((patch + 1))
-              revision=0
               ;;
             revision)
               revision=$((revision + 1))
               ;;
             *)
-              echo "Invalid increment type: $INCREMENT"
-              exit 1
+              echo "No increment specified. Skipping version update."
+              exit 0
               ;;
           esac
 
@@ -120,7 +123,6 @@ jobs:
         # Output the new version so it can be used in later steps
         echo "new_version=$new_version" >> $GITHUB_ENV
 
-
     - name: Commit and push changes
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -128,10 +130,15 @@ jobs:
         git config user.name "ahtesham-haq"
         git config user.email "ahtesham.ul.haq@healthwaresystems.com"
         
-        # Add and commit changes
-        git add .
-        git diff --cached --name-only  # Check what files are staged
-        git commit -m "Incremented version to ${{ env.new_version }}" || echo "No changes to commit"
-        
-        # Push changes to main branch
-        git push origin main
+        # Check if there are changes to commit
+        if [ -n "$(git status --porcelain)" ]; then
+          # Add and commit changes
+          git add .
+          git diff --cached --name-only  # Check what files are staged
+          git commit -m "Incremented version to ${{ env.new_version }}"
+          
+          # Push changes to main branch
+          git push origin main
+        else
+          echo "No changes to commit."
+        fi
