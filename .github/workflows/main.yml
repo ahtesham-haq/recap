@@ -114,14 +114,17 @@ jobs:
       if: github.event.action == 'labeled'
       run: |
         echo "Merging changes to main"
+
+        # Fetch and checkout the PR branch
+        git fetch origin ${{ github.head_ref }}
+        git checkout -b pr-branch FETCH_HEAD
         
         # Ensure we're on the main branch
         git fetch origin main
         git checkout main
         
-        # Fetch and merge the PR branch into main
-        git fetch origin ${{ github.head_ref }}
-        git merge ${{ github.head_ref }} --no-ff -m "Merge PR #${{ github.event.pull_request.number }} into main"
+        # Merge the PR branch into main
+        git merge pr-branch --no-ff -m "Merge PR #${{ github.event.pull_request.number }} into main"
         
         # Push the updated main branch
         git push origin main
