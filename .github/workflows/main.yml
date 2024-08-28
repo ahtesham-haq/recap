@@ -17,7 +17,6 @@ jobs:
       uses: actions/checkout@v3
       with:
         fetch-depth: 0  # Ensure that the full history is fetched
-        ref: ${{ github.head_ref }}  # Ensure you're on the correct PR branch
 
     - name: Set up .NET
       uses: actions/setup-dotnet@v2
@@ -54,48 +53,51 @@ jobs:
       run: |
         file="ConsoleApp1CICD/Properties/AssemblyInfo.cs" # Update path to reflect your project structure
         
-        # Extract current version
-        version=$(grep -oP '(?<=\[assembly: AssemblyVersion\(")[^"]+' $file | tr -d '\r' | tr -d '\n')
-        echo "Current version: $version"
+        # Extract current versions
+        versions=$(grep -oP '(?<=\[assembly: AssemblyVersion\(")[^"]+' $file)
+        echo "Current versions:"
+        echo "$versions"
+        
+        # Define the function to increment the version
+        increment_version() {
+          local version=$1
+          IFS='.' read -r major minor patch revision <<< "$version"
 
-        # Extract major, minor, patch, and revision
-        IFS='.' read -r major minor patch revision <<< "$version"
+          case $INCREMENT in
+            major)
+              major=$((major + 1))
+              minor=0
+              patch=0
+              revision=0
+              ;;
+            minor)
+              minor=$((minor + 1))
+              patch=0
+              revision=0
+              ;;
+            patch)
+              patch=$((patch + 1))
+              ;;
+            *)
+              echo "Invalid increment type: $INCREMENT"
+              exit 1
+              ;;
+          esac
 
-        # Determine increment based on environment variable
-        case $INCREMENT in
-          major)
-            major=$((major + 1))
-            minor=0
-            patch=0
-            revision=0
-            ;;
-          minor)
-            minor=$((minor + 1))
-            patch=0
-            revision=0
-            ;;
-          patch)
-            patch=$((patch + 1))
-            ;;
-          *)
-            echo "Invalid increment type: $INCREMENT"
-            exit 1
-            ;;
-        esac
+          echo "$major.$minor.$patch.$revision"
+        }
 
-        new_version="$major.$minor.$patch.$revision"
-        echo "New version: $new_version"
-
-        # Debug: Print the file content before modification
-        echo "Original file content before modification:"
-        cat $file
-
-        # Replace the version in AssemblyInfo.cs using slashes
-        sed -i "s/\[assembly: AssemblyVersion(\"$version\")\]/\[assembly: AssemblyVersion(\"$new_version\")\]/g" $file
-        sed -i "s/\[assembly: AssemblyFileVersion(\"$version\")\]/\[assembly: AssemblyFileVersion(\"$new_version\")\]/g" $file
+        # Loop through all versions and replace them in the file
+        while IFS= read -r version; do
+          new_version=$(increment_version "$version")
+          echo "Updating version from $version to $new_version"
+          # Replace the version in AssemblyInfo.cs using a pipe delimiter
+          sed -i "s|\[assembly: AssemblyVersion(\"$version\")\]|\[assembly: AssemblyVersion(\"$new_version\")\]|g" $file
+          sed -i "s|\[assembly: AssemblyFileVersion(\"$version\")\]|\[assembly: AssemblyFileVersion(\"$new_version\")\]|g" $file
+        done <<< "$versions"
 
         # Debug: Print the file content after modification
-        echo "Modified file content after modification:"
+        echo "Modified file content:"
         cat $file
 
         # Output the new version so it can be used in later steps
@@ -110,6 +112,7 @@ jobs:
         
         # Add and commit changes
         git add .
+        git diff --cached --name-only  # Check what files are staged
         git commit -m "Incremented version to ${{ env.new_version }}" || echo "No changes to commit"
         
         # Verify the current branch
