@@ -1,4 +1,4 @@
-name: Version Increment and Merge
+name: Version Increment and PR Merge
 
 on:
   pull_request:
@@ -102,30 +102,37 @@ jobs:
 
         # Output the new version so it can be used in later steps
         echo "new_version=$new_version" >> $GITHUB_ENV
-        
-        # Commit changes
+
+    - name: Commit and push changes to PR branch
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
         git config user.name "ahtesham-haq"
         git config user.email "ahtesham.ul.haq@healthwaresystems.com"
-        git add .
-        git diff --cached --name-only  # Check what files are staged
-        git commit -m "Incremented version to $new_version" || echo "No changes to commit"
+        
+        # Check if there are changes
+        git diff --exit-code
+        if [ $? -ne 0 ]; then
+          git add .
+          git commit -m "Incremented version to $new_version"
+          git push origin ${{ github.head_ref }}
+        else
+          echo "No changes to commit"
+        fi
 
-    - name: Merge changes to main
+    - name: Merge PR into main
       if: github.event.action == 'labeled'
       run: |
         echo "Merging changes to main"
 
-        # Fetch the latest main branch
+        # Ensure we are on the main branch and update it
         git fetch origin main
         git checkout main
         git pull origin main
-        
-        # Fetch and checkout the PR branch
-        git fetch origin ${{ github.head_ref }}
-        git checkout -b pr-branch FETCH_HEAD
-        
+
         # Merge the PR branch into main
-        git merge pr-branch --no-ff -m "Merge PR #${{ github.event.pull_request.number }} into main"
-        
+        git fetch origin ${{ github.head_ref }}
+        git merge --no-ff -m "Merge PR #${{ github.event.pull_request.number }} into main" ${{ github.head_ref }}
+
         # Push the updated main branch
         git push origin main
