@@ -13,10 +13,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout PR branch
+    - name: Checkout code
       uses: actions/checkout@v3
       with:
-        ref: ${{ github.head_ref }}  # Ensure you're on the correct PR branch
+        fetch-depth: 0  # Ensure that the full history is fetched
 
     - name: Set up .NET
       uses: actions/setup-dotnet@v2
@@ -53,8 +53,8 @@ jobs:
       run: |
         file="ConsoleApp1CICD/Properties/AssemblyInfo.cs" # Update path to reflect your project structure
         
-        # Extract current version
-        version=$(grep -oP '(?<=\[assembly: AssemblyVersion\(")[^"]+' $file | tr -d '\r' | tr -d '\n')
+        # Extract the first match of AssemblyVersion
+        version=$(grep -oP '(?<=\[assembly: AssemblyVersion\(")[^"]+' $file | head -n 1 | tr -d '\r' | tr -d '\n')
         echo "Current version: $version"
 
         # Extract major, minor, patch, and revision
