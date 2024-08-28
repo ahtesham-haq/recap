@@ -86,9 +86,17 @@ jobs:
         new_version="$major.$minor.$patch.$revision"
         echo "New version: $new_version"
 
+        # Debug: Print the file content before and after modification
+        echo "Original file content:"
+        cat $file
+
         # Replace the version in AssemblyInfo.cs using a pipe delimiter
         sed -i "s|\[assembly: AssemblyVersion(\"$version\")\]|\[assembly: AssemblyVersion(\"$new_version\")\]|g" $file
         sed -i "s|\[assembly: AssemblyFileVersion(\"$version\")\]|\[assembly: AssemblyFileVersion(\"$new_version\")\]|g" $file
+
+        # Debug: Print the file content after modification
+        echo "Modified file content:"
+        cat $file
 
         # Output the new version so it can be used in later steps
         echo "new_version=$new_version" >> $GITHUB_ENV
