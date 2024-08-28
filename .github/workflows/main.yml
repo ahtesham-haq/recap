@@ -51,13 +51,13 @@ jobs:
     - name: Increment version
       id: increment_version
       run: |
-        file="ConsoleApp1CICD/Properties/AssemblyInfo.cs" # Update path to reflect your project structure
+        file="ConsoleApp1CICD/Properties/AssemblyInfo.cs"  # Update path if needed
         
         # Extract current versions
         versions=$(grep -oP '(?<=\[assembly: AssemblyVersion\(")[^"]+' $file)
         echo "Current versions:"
         echo "$versions"
-        
+
         # Define the function to increment the version
         increment_version() {
           local version=$1
@@ -87,11 +87,12 @@ jobs:
           echo "$major.$minor.$patch.$revision"
         }
 
-        # Loop through all versions and replace them in the file
+        # Replace the version in AssemblyInfo.cs using sed
         while IFS= read -r version; do
           new_version=$(increment_version "$version")
           echo "Updating version from $version to $new_version"
-          # Replace the version in AssemblyInfo.cs using a pipe delimiter
+
+          # Use sed to replace version lines without adding comments
           sed -i "s|\[assembly: AssemblyVersion(\"$version\")\]|\[assembly: AssemblyVersion(\"$new_version\")\]|g" $file
           sed -i "s|\[assembly: AssemblyFileVersion(\"$version\")\]|\[assembly: AssemblyFileVersion(\"$new_version\")\]|g" $file
         done <<< "$versions"
@@ -124,14 +125,17 @@ jobs:
       if: github.event.action == 'labeled'
       run: |
         echo "Merging changes to main"
-
-        # Ensure we are on the main branch and update it
+        
+        # Fetch and checkout the PR branch
+        git fetch origin ${{ github.head_ref }}
+        git checkout ${{ github.head_ref }}
+        
+        # Ensure we are on the main branch
         git fetch origin main
         git checkout main
         git pull origin main
 
         # Merge the PR branch into main
-        git fetch origin ${{ github.head_ref }}
         git merge --no-ff -m "Merge PR #${{ github.event.pull_request.number }} into main" ${{ github.head_ref }}
 
         # Push the updated main branch
