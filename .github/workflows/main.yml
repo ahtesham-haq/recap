@@ -47,14 +47,15 @@ jobs:
         else
           echo "No recognized label found. Incrementing patch version."
           echo "INCREMENT=patch" >> $GITHUB_ENV
+        fi
 
     - name: Increment version
       id: increment_version
       run: |
         file="ConsoleApp1CICD/Properties/AssemblyInfo.cs" # Update path to reflect your project structure
         
-        # Extract the first match of AssemblyVersion
-        version=$(grep -oP '(?<=\[assembly: AssemblyVersion\(")[^"]+' $file | head -n 1 | tr -d '\r' | tr -d '\n')
+        # Extract current version
+        version=$(grep -oP '(?<=\[assembly: AssemblyVersion\(")[^"]+' $file | tr -d '\r' | tr -d '\n')
         echo "Current version: $version"
 
         # Extract major, minor, patch, and revision
@@ -66,16 +67,19 @@ jobs:
             major=$((major + 1))
             minor=0
             patch=0
-            revision=0  # Reset revision when major is incremented
+            revision=0
             ;;
           minor)
             minor=$((minor + 1))
             patch=0
-            revision=0  # Reset revision when minor is incremented
+            revision=0
             ;;
           patch)
             patch=$((patch + 1))
-            revision=0  # Reset revision when patch is incremented
+            ;;
+          *)
+            echo "Invalid increment type: $INCREMENT"
+            exit 1
             ;;
         esac
 
@@ -116,7 +120,7 @@ jobs:
         git checkout main
         
         # Merge the PR branch into main
-        git merge ${{ github.head_ref }}
+        git merge ${{ github.head_ref }} --no-ff -m "Merge PR #${{ github.event.pull_request.number }} into main"
         
         # Push the updated main branch
         git push origin main
