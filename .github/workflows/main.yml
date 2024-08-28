@@ -112,7 +112,6 @@ jobs:
         
         # Add and commit changes
         git add .
-        git diff --cached --name-only  # Check what files are staged
         git commit -m "Incremented version to ${{ env.new_version }}" || echo "No changes to commit"
         
         # Verify the current branch
