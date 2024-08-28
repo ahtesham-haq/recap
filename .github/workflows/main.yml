@@ -48,7 +48,8 @@ jobs:
           echo "INCREMENT=patch" >> $GITHUB_ENV
         fi
 
-    - name: Increment version
+    - name: Increment version and commit changes
+      if: github.event.action == 'labeled' || github.event.action == 'synchronize'
       id: increment_version
       run: |
         file="ConsoleApp1CICD/Properties/AssemblyInfo.cs" # Update path to reflect your project structure
@@ -102,38 +103,27 @@ jobs:
 
         # Output the new version so it can be used in later steps
         echo "new_version=$new_version" >> $GITHUB_ENV
-
-    - name: Commit and push changes to PR branch
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
+        
+        # Commit changes
         git config user.name "ahtesham-haq"
         git config user.email "ahtesham.ul.haq@healthwaresystems.com"
-        
-        # Check if there are changes to commit
-        git diff --name-only
         git add .
-        git commit -m "Incremented version to ${{ env.new_version }}" || echo "No changes to commit"
-        
-        # Verify the current branch
-        echo "Current branch: ${{ github.head_ref }}"
-
-        # Ensure we're on the correct PR branch and push
-        git fetch origin ${{ github.head_ref }}
-        git checkout ${{ github.head_ref }}
-        git push origin ${{ github.head_ref }}
+        git commit -m "Incremented version to $new_version" || echo "No changes to commit"
 
     - name: Merge changes to main
-      if: github.event.action == 'labeled'  # Ensure this step only runs when a label is added
+      if: github.event.action == 'labeled' || github.event.action == 'synchronize'
       run: |
         echo "Merging changes to main"
         
-        # Check out the main branch
-        git fetch origin main
-        git checkout main
+        # Fetch the latest changes
+        git fetch origin
+        
+        # Check out the PR branch
+        git checkout ${{ github.head_ref }}
         
         # Merge the PR branch into main
-        git merge --no-ff ${{ github.head_ref }} -m "Merge PR #${{ github.event.pull_request.number }} into main"
+        git checkout main
+        git merge ${{ github.head_ref }} --no-ff -m "Merge PR #${{ github.event.pull_request.number }} into main"
         
         # Push the updated main branch
         git push origin main
