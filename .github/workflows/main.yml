@@ -53,43 +53,55 @@ jobs:
     - name: Increment version
       id: increment_version
       run: |
-        file="ConsoleApp1CICD/Properties/AssemblyInfo.cs" # Update path to reflect your project structure
+        file="ConsoleApp1CICD/Properties/AssemblyInfo.cs"  # Update path if needed
+        
+        # Extract current versions
+        versions=$(grep -oP '(?<=\[assembly: AssemblyVersion\(")[^"]+' $file)
+        echo "Current versions:"
+        echo "$versions"
 
-        # Extract current version
-        version=$(grep -oP '(?<=\[assembly: AssemblyVersion\(")[^"]+' $file)
-        echo "Current version: $version"
+        # Define the function to increment the version
+        increment_version() {
+          local version=$1
+          IFS='.' read -r major minor patch revision <<< "$version"
 
-        # Extract major, minor, patch, and revision
-        IFS='.' read -r major minor patch revision <<< "$version"
+          case $INCREMENT in
+            major)
+              major=$((major + 1))
+              minor=0
+              patch=0
+              revision=0
+              ;;
+            minor)
+              minor=$((minor + 1))
+              patch=0
+              revision=0
+              ;;
+            patch)
+              patch=$((patch + 1))
+              ;;
+            *)
+              echo "Invalid increment type: $INCREMENT"
+              exit 1
+              ;;
+          esac
 
-        # Determine increment based on environment variable
-        case $INCREMENT in
-          major)
-            major=$((major + 1))
-            minor=0
-            patch=0
-            revision=0
-            ;;
-          minor)
-            minor=$((minor + 1))
-            patch=0
-            revision=0
-            ;;
-          patch)
-            patch=$((patch + 1))
-            ;;
-          *)
-            echo "Invalid increment type: $INCREMENT"
-            exit 1
-            ;;
-        esac
+          echo "$major.$minor.$patch.$revision"
+        }
 
-        new_version="$major.$minor.$patch.$revision"
-        echo "New version: $new_version"
+        # Debug: Print the file content before modification
+        echo "Original file content:"
+        cat $file
 
-        # Replace the version in AssemblyInfo.cs using a pipe delimiter
-        sed -i "s|\[assembly: AssemblyVersion(\"$version\")\]|\[assembly: AssemblyVersion(\"$new_version\")\]|g" $file
-        sed -i "s|\[assembly: AssemblyFileVersion(\"$version\")\]|\[assembly: AssemblyFileVersion(\"$new_version\")\]|g" $file
+        # Replace the version in AssemblyInfo.cs using sed
+        while IFS= read -r version; do
+          new_version=$(increment_version "$version")
+          echo "Updating version from $version to $new_version"
+
+          # Use sed to replace version lines
+          sed -i "s|\[assembly: AssemblyVersion(\"$version\")\]|\[assembly: AssemblyVersion(\"$new_version\")\]|g" $file
+          sed -i "s|\[assembly: AssemblyFileVersion(\"$version\")\]|\[assembly: AssemblyFileVersion(\"$new_version\")\]|g" $file
+        done <<< "$versions"
 
         # Debug: Print the file content after modification
         echo "Modified file content:"
