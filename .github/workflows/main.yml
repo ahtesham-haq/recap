@@ -83,6 +83,7 @@ jobs:
               ;;
             build)
               patch=$((patch + 1))
+              revision=0
               ;;
             revision)
               revision=$((revision + 1))
